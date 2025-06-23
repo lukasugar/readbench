@@ -33,11 +33,14 @@ from cosette import Chat as CosetteChat
 from cosette import Client as CosetteClient
 from vertexauth import get_claudette_client
 from openai import AzureOpenAI
-azure_endpoint = AzureOpenAI(
-    azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT"), 
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),  
-    api_version="2024-12-01-preview",
-    )
+try:
+    # Azure secrets should be set if using Azure OpenAI models
+    azure_endpoint = AzureOpenAI(
+        azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT"), 
+        api_key=os.getenv("AZURE_OPENAI_API_KEY"),  
+        api_version="2024-12-01-preview",
+        )
+except Exception as e: pass
 
 import babilong_prompts as bp
 import longbench_prompts as lbp
@@ -117,6 +120,10 @@ PRICING_RATES = {
     "o3-mini-2025-01-31": {"in": 1.10 / 1_000_000, "out": 4.40 / 1_000_000},
     # o1-mini
     "o1-mini-2024-09-12": {"in": 1.10 / 1_000_000, "out": 4.40 / 1_000_000},
+    "gemini-2.5-pro-preview-06-05": {"in": 0.15 / 1_000_000, "out": 3.50 / 1_000_000},
+    "gemini-2.5-pro-preview": {"in": 0.15 / 1_000_000, "out": 3.50 / 1_000_000},
+    "gemini-2.5-flash": {"in": 0.30 / 1_000_000, "out": 2.50 / 1_000_000},
+    "gemini-2.5-flash-lite-preview-06-17": {"in": 0.10 / 1_000_000, "out": 0.40 / 1_000_000},
     "gemini-2.0-flash":      {"in": 0.10 / 1_000_000,   "out": 0.40 / 1_000_000},
     "gemini-2.5-flash-preview-04-17": {"in": 0.15 / 1_000_000, "out": 0.60 / 1_000_000},
     "gemini-2.0-flash-lite": {"in": 0.0075 / 1_000_000, "out": 0.30 / 1_000_000},
@@ -232,7 +239,10 @@ def gemini_model_call(
         *,
         debug: bool = False,
 ) -> Tuple[str, int | None, int | None]:
-    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    client = genai.Client(
+        api_key=os.getenv("GEMINI_API_KEY"), 
+        # 5 minutes timeout per call
+        http_options={"timeout": 5 * 60 * 1000})
 
     parts = []
     for seg in segments:
